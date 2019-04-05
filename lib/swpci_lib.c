@@ -112,7 +112,7 @@ int sw_put_data(int sw_fd, int port, unsigned int *data, unsigned int size) {
   sw_r(sw_fd,port,ADD_TX_CSR,&st);
   if ((st&0x80000000)!=0) return -1;
 
-  max_size = st&0x000FFFFF; /*16bit*/
+  max_size = st&0x000FFFFC; /*16bit*/
   if (i_size > max_size) i_size=max_size;
   if (i_size%4==0) put_size=i_size;
   else             put_size=(i_size/4+1)*4;
@@ -155,7 +155,7 @@ int sw_put_dma(int sw_fd, int port, unsigned int *data, unsigned int size) {
   sw_r(sw_fd,port,ADD_TX_CSR,&st);
   if ((st&0x80000000)!=0) return -1;
 
-  max_size = st&0x000FFFFF; /*16bit*/
+  max_size = st&0x000FFFFC; /*16bit*/
   if (i_size > max_size) i_size=max_size;
   if (i_size%4==0) put_size=i_size;
   else             put_size=(i_size/16+1)*16;
