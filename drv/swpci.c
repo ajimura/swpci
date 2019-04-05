@@ -88,18 +88,6 @@ static irqreturn_t sw_isr(int irq, void *dev_id)
   return IRQ_HANDLED;
 }
 
-/* read and write BAR-mem */
-static void read_bar(u32 *bar, u32 address, u32 *data)
-{
-  *data=ioread32(bar+address/4);
-  //  *data=*(bar+address/4);
-}
-static void write_bar(u32 *bar, u32 address, u32 data)
-{
-  iowrite32(data,bar+address/4);
-  //  *(bar+address/4)=data;
-}
-
 /* scan, unmap, map bars */
 static int scan_bars(struct swpci_dev *swp, struct pci_dev *dev)
 {
@@ -517,7 +505,7 @@ static long swpci_ioctl(
       if (copy_to_user((int __user *)arg, &cmd_mem, sizeof(cmd_mem))){
 	retval = -EFAULT; goto done; }
 #if VERB
-      printk(KERN_DEBUG "(%d)IORMR_cmd.size %x %08x\n",cmd_mem.port,real_len, __func__);
+      printk(KERN_DEBUG "(%d)IORMR_cmd.size %08x\n",cmd_mem.port,real_len, __func__);
 #endif
     }
     break;
@@ -561,7 +549,7 @@ static long swpci_ioctl(
     real_len=(put_size+3)/4*4;
 #if VERB
     printk(KERN_DEBUG "(%d)%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-	   swsoc->minor,
+	   cmd_mem.port,
 	   tx_buffer[0],tx_buffer[1],tx_buffer[2],tx_buffer[3],tx_buffer[4],tx_buffer[5],
 	   tx_buffer[6],tx_buffer[7],tx_buffer[8],tx_buffer[9],tx_buffer[10],tx_buffer[11],
 	   tx_buffer[12],tx_buffer[13],tx_buffer[14],tx_buffer[15]);
@@ -592,7 +580,7 @@ static long swpci_ioctl(
     memcpy_fromio(buftop,bar0top+address,12);
 #if VERB
     printk(KERN_DEBUG "(%d)%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-	   swsoc->minor,
+	   cmd_mem.port,
 	   buftop[0],buftop[1],buftop[2],buftop[3],buftop[4],buftop[5],
 	   buftop[6],buftop[7],buftop[8],buftop[9],buftop[10],buftop[11]);
 #endif
@@ -613,7 +601,7 @@ static long swpci_ioctl(
     rmb();
     iowrite32(0,bar2top+addr_rxcsr);
 #if VERB
-    printk(KERN_DEBUG "(%d)IORCV_cmd.size %x (%s)\n",swsoc->minor,get_size, __func__);
+    printk(KERN_DEBUG "(%d)IORCV_cmd.size %x (%s)\n",cmd_mem.port,get_size, __func__);
 #endif
     break;
 
