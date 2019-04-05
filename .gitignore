@@ -1,0 +1,10 @@
+*~
+*.o
+Module.symvers
+modules.order
+swpci.ko
+swpci.mod.c
+.swpci.ko.cmd
+.swpci.mod.o.cmd
+.swpci.o.cmd
+.tmp_versions
