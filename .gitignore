@@ -1,5 +1,5 @@
-*~
 *.o
+*~
 Module.symvers
 modules.order
 swpci.ko
@@ -8,3 +8,7 @@ swpci.mod.c
 .swpci.mod.o.cmd
 .swpci.o.cmd
 .tmp_versions
+flush
+getver
+reset
+status
