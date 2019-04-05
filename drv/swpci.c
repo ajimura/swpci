@@ -505,7 +505,7 @@ static long swpci_ioctl(
       if (copy_to_user((int __user *)arg, &cmd_mem, sizeof(cmd_mem))){
 	retval = -EFAULT; goto done; }
 #if VERB
-      printk(KERN_DEBUG "(%d)IORMR_cmd.size %08x\n",cmd_mem.port,real_len, __func__);
+      printk(KERN_DEBUG "(%d)IORMR_cmd.size %08x (%s)\n",cmd_mem.port,real_len, __func__);
 #endif
     }
     break;
