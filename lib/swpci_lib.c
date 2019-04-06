@@ -160,7 +160,7 @@ int sw_get_data0(int sw_fd, int port, unsigned int *data, unsigned int size) {
   }
   i = sw_w(sw_fd,port,ADD_RX_CSR,0);
   if (i){
-    printf("Error in flush buffer\n",i);
+    printf("Error in flush buffer\n");
     return -1;
   }
   return j_size; 
@@ -261,13 +261,16 @@ int sw_rcv(int sw_fd, int port, unsigned int *data, int *status, int tid, int si
 }  
 
 int sw_link_test(int sw_fd, int port){
+  unsigned data;
   int i;
-  sw_r(sw_fd,port,ADD_RX_CSR,&i);
-  if ((i&0x40000000)==0){
-    return -1;
-  }else{
-    return 0;
+  sw_r(sw_fd,port,ADD_RX_CSR,&data);
+  if ((data&0x40000000)==0){
+    sw_r(sw_fd,port,ADD_RX_CSR,&data);
+    if ((data&0x40000000)==0){
+      return -1;
+    }
   }
+  return 0;
 }
 
 int sw_link_check(int sw_fd, int port){
