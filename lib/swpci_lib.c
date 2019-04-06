@@ -60,7 +60,6 @@ int sw_bw(int sw_fd, int port, unsigned int *ptr, unsigned int size)
 {
   struct swio_mem swio;
 
-  swio.addr = 0;
   swio.port = port;
   swio.val = size;
   swio.ptr = ptr;
@@ -71,7 +70,6 @@ int sw_br(int sw_fd, int port, unsigned int *ptr, unsigned int size)
 {
   struct swio_mem swio;
 
-  swio.addr = 0;
   swio.port = port;
   swio.val = size;
   swio.ptr = ptr;
@@ -83,7 +81,6 @@ int sw_dw(int sw_fd, int port, unsigned int *ptr, unsigned int size)
 {
   struct swio_mem swio;
 
-  swio.addr = 0;
   swio.port = port;
   swio.val = size;
   swio.ptr = ptr;
@@ -94,7 +91,6 @@ int sw_dr(int sw_fd, int port, unsigned int *ptr, unsigned int size)
 {
   struct swio_mem swio;
 
-  swio.addr = 0;
   swio.port = port;
   swio.val = size;
   swio.ptr = ptr;
@@ -102,7 +98,7 @@ int sw_dr(int sw_fd, int port, unsigned int *ptr, unsigned int size)
 }
 
 
-int sw_put_data(int sw_fd, int port, unsigned int *data, unsigned int size) {
+int sw_put_data0(int sw_fd, int port, unsigned int *data, unsigned int size) {
 
   unsigned int st;
   int i,max_size,i_size,put_size;
@@ -117,16 +113,34 @@ int sw_put_data(int sw_fd, int port, unsigned int *data, unsigned int size) {
   if (i_size%4==0) put_size=i_size;
   else             put_size=(i_size/4+1)*4;
   i = sw_bw(sw_fd, port, data, put_size);
-  //  i = sw_dw(sw_fd, port, data, put_size);
-  sw_w(sw_fd,port,ADD_TX_CSR,0x80400000+i_size);
   if (i){
-    //    printf("Error in block write %X %X\n",i,put_size);
+    printf("Error in block write %X %X\n",i,put_size);
+    return -1;
+  }
+  i=sw_w(sw_fd,port,ADD_TX_CSR,0x80400000+i_size);
+  if (i){
+    printf("Error in issue GO %X\n",i);
     return -1;
   }
   return put_size; 
 }
 
-int sw_get_data(int sw_fd, int port, unsigned int *data, unsigned int size) {
+int sw_put_data(int sw_fd, int port, unsigned int *data, unsigned int size)
+{
+  struct swio_mem swio;
+  int ret;
+
+  swio.port=port;
+  swio.val=size;
+  swio.ptr=data;
+  if ((ret=ioctl(sw_fd,SW_PCKT_WRITE,&swio))<0){
+    printf("Error in block write %X %X\n",ret,swio.val);
+    return -1;
+  }
+  return swio.val;
+}
+
+int sw_get_data0(int sw_fd, int port, unsigned int *data, unsigned int size) {
   unsigned int st;
   int i,j_size,get_size;
 
@@ -140,9 +154,31 @@ int sw_get_data(int sw_fd, int port, unsigned int *data, unsigned int size) {
   else             get_size=(j_size/4+1)*4;
   i = sw_br(sw_fd,port,data,get_size);
   //  i = sw_dr(sw_fd,port,data,get_size);
-  if (i) printf("Error in block read %X %X\n",i,get_size);
-  sw_w(sw_fd,port,ADD_RX_CSR,0);
+  if (i){
+    printf("Error in block read %X %X\n",i,get_size);
+    return -1;
+  }
+  i = sw_w(sw_fd,port,ADD_RX_CSR,0);
+  if (i){
+    printf("Error in flush buffer\n",i);
+    return -1;
+  }
   return j_size; 
+}
+
+int sw_get_data(int sw_fd, int port, unsigned int *data, unsigned int size)
+{
+  struct swio_mem swio;
+  int ret;
+
+  swio.port=port;
+  swio.val=size;
+  swio.ptr=data;
+  if ((ret=ioctl(sw_fd,SW_PCKT_READ,&swio))<0){
+    printf("Error in block read %X %X\n",ret,swio.val);
+    return -1;
+  }
+  return swio.val;
 }
 
 int sw_put_dma(int sw_fd, int port, unsigned int *data, unsigned int size) {
@@ -187,6 +223,42 @@ int sw_get_dma(int sw_fd, int port, unsigned int *data, unsigned int size) {
   sw_w(sw_fd,port,ADD_RX_CSR,0);
   return j_size; 
 }
+
+int sw_req(int sw_fd, int port, int cmd, int saddr, int daddr, int key, int tid, int addr, int size){
+  struct swio_mem swio;
+  int ret;
+
+  swio.port=port;
+  swio.cmd=cmd;
+  swio.saddr=saddr;
+  swio.daddr=daddr;
+  swio.key=key;
+  swio.tid=tid;
+  swio.addr=addr;
+  swio.val=size;
+  if ((ret=ioctl(sw_fd,RMAP_REQ,&swio))<0){
+    printf("Error in block read %d %X\n",ret,swio.val);
+    return -1;
+  }
+  //  return swio.val;
+  return 0;
+}  
+
+int sw_rcv(int sw_fd, int port, unsigned int *data, int *status, int tid, int size){
+  struct swio_mem swio;
+  int ret;
+
+  swio.port=port;
+  swio.val=size;
+  swio.ptr=data;
+  swio.tid=tid;
+  if ((ret=ioctl(sw_fd,RMAP_RCV,&swio))<0){
+    printf("Error in block read %d %X\n",ret,swio.key);
+    return -1;
+  }
+  *status=swio.key;
+  return swio.val;
+}  
 
 int sw_link_test(int sw_fd, int port){
   int i;
