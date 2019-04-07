@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     ch=0;
   }
 
-  fd=sw_open();
+  fd=sw_open(ch);
 
   sw_rx_flush(fd,ch);
 
