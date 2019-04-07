@@ -533,6 +533,10 @@ static long swpci_ioctl(
     cmd_mem.val=put_size;
     if (copy_to_user((int __user *)arg, &cmd_mem, sizeof(cmd_mem))){
       retval = -EFAULT; goto done; }
+#if VERB
+    printk(KERN_DEBUG "(%d)IORMW_cmd.size %x (%s)\n",cmd_mem.port,real_len, __func__);
+#endif
+    break;
 
   case RMAP_REQ:
     // get csr

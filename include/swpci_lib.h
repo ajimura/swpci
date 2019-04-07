@@ -66,10 +66,10 @@ struct swio_mem {
 #define ADD_TX_CSR	0x00000020
 #define ADD_TX_DEBG	0x00000024
 
-int sw_open(void);
+int sw_open(int);
 void sw_close(int);
-int sw_w(int, unsigned int, unsigned int, unsigned int);
-int sw_r(int, unsigned int, unsigned int, unsigned int *);
+int sw_w(int, int, unsigned int, unsigned int);
+int sw_r(int, int, unsigned int, unsigned int *);
 int sw_bw(int, int, unsigned int *, unsigned int);
 int sw_br(int, int, unsigned int *, unsigned int);
 int sw_put_data0(int, int, unsigned int *, unsigned int);
