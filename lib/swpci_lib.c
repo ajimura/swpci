@@ -272,6 +272,22 @@ int sw_rcv(int sw_fd, int port, unsigned int *data, int *status, int tid, int si
   return swio.val;
 }  
 
+int sw_drcv(int sw_fd, int port, unsigned int *data, int *status, int tid, int size){
+  struct swio_mem swio;
+  int ret;
+
+  swio.port=port;
+  swio.val=size;
+  swio.ptr=data;
+  swio.tid=tid;
+  if ((ret=ioctl(sw_fd,RMAP_RCV_DMA,&swio))<0){
+    printf("Error in block read %d %X\n",ret,swio.key);
+    return -1;
+  }
+  *status=swio.key;
+  return swio.val;
+}  
+
 int sw_link_test(int sw_fd, int port){
   unsigned int data;
   sw_r(sw_fd,port,ADD_RX_CSR,&data);

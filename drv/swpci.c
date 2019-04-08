@@ -21,7 +21,7 @@
 #include <asm/io.h>
 #include "swpci.h"
 
-#define VERB 1
+#define VERB 0
 #define DevsNum 1
 #define TIMEOUT 2*HZ
 
@@ -305,6 +305,7 @@ static long swpci_ioctl(
   int put_size;
   int max_size;
   unsigned char buftop[12];
+  unsigned char *bufptr;
   unsigned int data;
   long remain_time;
   unsigned int ret_tid;
@@ -606,6 +607,80 @@ static long swpci_ioctl(
     iowrite32(0,bar2top+addr_rxcsr);
 #if VERB
     printk(KERN_DEBUG "(%d)IORCV_cmd.size %x (%s)\n",cmd_mem.port,get_size, __func__);
+#endif
+    break;
+
+  case RMAP_RCV_DMA:
+    bufptr=(unsigned char *)swp->dmaRbuf_virt;
+    get_size=0;
+    // RX CSR
+    addr_rxcsr=CSR_BASE + cmd_mem.port*CSR_SPAN + ADD_RX_CSR;
+    data=ioread32(bar2top+addr_rxcsr);
+    // check buffer status
+    if ((data&0x80000000)==0) {retval=-1; goto done;}
+    if ((data&0x00400000)==0) {retval=-1; goto done;}
+    // get size
+    max_size=cmd_mem.val;
+    real_len=((data&0x000fffff)+15)/16*16;
+    if (real_len>max_size) real_len=max_size;
+    // Data transfer
+    //    address=DATA_BASE + cmd_mem.port*DATA_SPAN;
+    //    memcpy_fromio(bufptr,bar0top+address,real_len);
+    address=DMA_BASE + cmd_mem.port*DATA_SPAN;
+    if (real_len>0){
+      iowrite32(0x202,bar2top+AVMM_CSR);	//clear dma controler
+      iowrite32(0x2,  bar2top+AVMM_CTL);	//reset dispatcher
+      wmb();
+      iowrite32(0x0,  bar2top+AVMM_CSR);	//clear all status
+      iowrite32(0x10, bar2top+AVMM_CTL);	//set IRQ enable
+      wmb();
+      iowrite32(0x0,  bar2top+AVMM_CSR);	//clear all status (need?)
+      wmb();
+      data=ioread32(bar2top+AVMM_CSR);rmb();	//wait for desc buf not empty
+      while((data&0x04)!=0){ data=ioread32(bar2top+AVMM_CSR); rmb();}
+      //write desc, wqcond=0, and go
+      phyaddr=(swp->dmaRbuf_phys&(~swp->a2p_mask));
+      iowrite32(address,bar2top+AVMM_DES0);
+      iowrite32(phyaddr,bar2top+AVMM_DES1);
+      iowrite32(real_len,bar2top+AVMM_DES2);
+      wqcond=0;
+      wmb();
+      iowrite32((1<<31)|(1<<14),bar2top+AVMM_DES3);
+      //wait IRQ (remain_time:0=false at timeout, 1=true at timeout, or remain jiffies
+      remain_time=wait_event_timeout(swp->wq,wqcond,TIMEOUT);
+#if VERB
+      //cheack IRQ status
+      printk(KERN_DEBUG "wait IRQ: remain_time=%ld condition=%d irq_count=%d\n",
+	     remain_time,wqcond,swp->irq_count);
+#endif
+#if VERB
+      printk(KERN_DEBUG "(%d)%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+	     cmd_mem.port,
+	     bufptr[0],bufptr[1],bufptr[2],bufptr[3],bufptr[4],bufptr[5],
+	     bufptr[6],bufptr[7],bufptr[8],bufptr[9],bufptr[10],bufptr[11]);
+#endif
+      cmd_mem.key=bufptr[3];
+      ret_tid=bufptr[5]*0x100+bufptr[6];
+      cmd_mem.val=bufptr[8]*0x10000+bufptr[9]*0x100+bufptr[10];
+      if (copy_to_user((int __user *)arg, &cmd_mem, sizeof(cmd_mem))){
+	retval = -EFAULT; goto done; }
+
+      if (cmd_mem.tid!=0 && cmd_mem.tid!=ret_tid) {retval=-EFAULT;goto done;}
+      if (cmd_mem.key!=0) {
+	retval=-EFAULT;goto done;}
+
+      get_size=(cmd_mem.val+3)/4*4;
+      if (get_size>max_size) get_size=max_size;
+      if (!access_ok(VERIFY_WRITE, (void __user *)cmd_mem.ptr,get_size)){
+	retval = -EFAULT; goto done; }
+      if (copy_to_user((int __user *)cmd_mem.ptr, bufptr+12, get_size)){
+	retval = -EFAULT; goto done; }
+      rmb();
+
+      iowrite32(0,bar2top+addr_rxcsr);
+    }
+#if VERB
+    printk(KERN_DEBUG "(%d)IORCVD_cmd.size %x (%s)\n",cmd_mem.port,get_size, __func__);
 #endif
     break;
 

@@ -80,6 +80,7 @@ int sw_put_dma(int, int, unsigned int *, unsigned int);
 int sw_get_dma(int, int, unsigned int *, unsigned int);
 int sw_req(int, int, int, int, int, int, int, int, int);
 int sw_rcv(int, int, unsigned int *, int *, int, int);
+int sw_drcv(int, int, unsigned int *, int *, int, int);
 int sw_link_test(int, int);
 int sw_link_check(int , int);
 void sw_link_reset(int, int);
