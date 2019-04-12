@@ -58,7 +58,7 @@ struct swio_mem {
 
 #define ADD_CM_REG	0x00000000
 #define ADD_ST_REG	0x00000004
-#define ADD_CK_REG	0x00000008
+#define ADD_CK_REG	0x0000000C
 
 #define ADD_RX_CSR	0x00000010
 #define ADD_RX_DEBG	0x00000014
