@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd lib; make; cd ..
+cd drv; make; cd ..

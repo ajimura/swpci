@@ -1,0 +1,3 @@
+#!/bin/bash
+cd lib; make clean; cd ..
+cd drv; make clean; cd ..
